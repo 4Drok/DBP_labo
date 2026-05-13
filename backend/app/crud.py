@@ -1,3 +1,6 @@
+#SQLAlchemy toma los datos y los guarda en la base de 
+#datos usando estacion.model_dump().
+
 from app import models
 from sqlalchemy import func
 
