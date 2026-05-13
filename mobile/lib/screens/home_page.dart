@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
-import 'login_screen.dart';
 import '../models/estacion.dart';
+import 'login_screen.dart';
+import 'add_estacion.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
-
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -20,6 +20,13 @@ class _HomePageState extends State<HomePage> {
     futureEstaciones = ApiService().fetchEstaciones();
   }
 
+  // Lógica para el Reto Live Update
+  void _refreshData() {
+    setState(() {
+      futureEstaciones = ApiService().fetchEstaciones();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,14 +37,14 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await AuthService().logout();
-
+              if(!mounted) return;
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const LoginScreen()),
                 (route) => false,
               );
             },
-          )
+          ),
         ],
       ),
       body: FutureBuilder<List<Estacion>>(
@@ -61,6 +68,32 @@ class _HomePageState extends State<HomePage> {
             );
           }
         },
+      ),
+      // Reto Lab 5.1: Live Update y navegación para añadir estación
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            heroTag: "btnRefresh",
+            onPressed: _refreshData,
+            child: const Icon(Icons.refresh),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton(
+            heroTag: "btnAdd",
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AddEstacionScreen()),
+              );
+              // Si regresa true (se guardó con éxito), actualizamos la lista
+              if (result == true) {
+                _refreshData();
+              }
+            },
+            child: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }
