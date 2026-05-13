@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 
 class EstacionCreate(BaseModel):
-    id: int
     nombre: str
     ubicacion: str
 
