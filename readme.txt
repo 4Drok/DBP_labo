@@ -75,7 +75,7 @@ cd iot_device
 # 2. Instalar dependencias
 pip install requests
 
-# 3. Ejecutar el emisor
+# 3. Para ejecutar el emisor aplicamos
 python sensor_emitter.py
 ```
 
