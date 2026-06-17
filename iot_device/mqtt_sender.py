@@ -7,14 +7,14 @@ import sys
 # ─────────────────────────────────────────────
 # CONFIGURACIÓN
 # ─────────────────────────────────────────────
-BROKER     = "broker.hivemq.com"
-PORT       = 1883
+BROKER      = "broker.hivemq.com"
+PORT        = 1883
 ESTACION_ID = 1           # Cambia por el ID de tu estación (debe existir en la BD)
-TOPIC      = f"fisi/smat/estaciones/{ESTACION_ID}"
+TOPIC       = f"fisi/smat/estaciones/{ESTACION_ID}"
 
-INTERVALO_NORMAL    = 10   # segundos en modo normal
-INTERVALO_EMERGENCIA = 2   # segundos cuando valor > 70 cm
-UMBRAL_ALERTA       = 70.0
+INTERVALO_NORMAL     = 10   # segundos en modo normal
+INTERVALO_EMERGENCIA = 2    # segundos cuando valor > 70 cm
+UMBRAL_ALERTA        = 70.0
 # ─────────────────────────────────────────────
 
 
@@ -23,7 +23,9 @@ def leer_sensor_emulado() -> float:
     return round(random.uniform(10.5, 85.0), 2)
 
 
-def on_connect(client, userdata, flags, rc):
+# ── Callbacks MQTT (VERSION2) ────────────────────────────────────────────────
+
+def on_connect(client, userdata, flags, reason_code, properties):
     codigos = {
         0: "Conexión exitosa",
         1: "Versión de protocolo incorrecta",
@@ -32,26 +34,27 @@ def on_connect(client, userdata, flags, rc):
         4: "Usuario/contraseña incorrectos",
         5: "No autorizado",
     }
-    mensaje = codigos.get(rc, f"Código desconocido: {rc}")
-    if rc == 0:
+    mensaje = codigos.get(reason_code, f"Código desconocido: {reason_code}")
+    if reason_code == 0:
         print(f"[MQTT] Conectado al broker '{BROKER}'. {mensaje}")
     else:
         print(f"[MQTT ERROR] No se pudo conectar: {mensaje}")
         sys.exit(1)
 
 
-def on_disconnect(client, userdata, rc):
-    if rc != 0:
-        print(f"[MQTT] Desconexión inesperada (rc={rc}). Intentando reconectar...")
+def on_disconnect(client, userdata, flags, reason_code, properties):
+    if reason_code != 0:
+        print(f"[MQTT] Desconexión inesperada (rc={reason_code}). Intentando reconectar...")
 
 
-def on_publish(client, userdata, mid):
+def on_publish(client, userdata, mid, reason_code=None, properties=None):
     # Callback silencioso; el log de OK ya se imprime en el bucle principal
     pass
 
 
 def iniciar_sender():
-    client = mqtt.Client(client_id=f"smat-sender-estacion{ESTACION_ID}")
+    # Configurar cliente MQTT con VERSION2
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"smat-sender-estacion{ESTACION_ID}")
     client.on_connect    = on_connect
     client.on_disconnect = on_disconnect
     client.on_publish    = on_publish
@@ -72,15 +75,15 @@ def iniciar_sender():
         while True:
             valor = leer_sensor_emulado()
             payload = {
-                "valor": valor,
+                "valor":       valor,
                 "estacion_id": ESTACION_ID,
-                "timestamp": time.time()
+                "timestamp":   time.time()
             }
 
             result = client.publish(TOPIC, json.dumps(payload), qos=1)
 
             if valor > UMBRAL_ALERTA:
-                print(f"  ⚠  [ALERTA] {valor} cm — Modo EMERGENCIA. QoS mid={result.mid}")
+                print(f"  [ALERTA] {valor} cm — Modo EMERGENCIA. QoS mid={result.mid}")
                 intervalo = INTERVALO_EMERGENCIA
             else:
                 print(f"[OK] {valor} cm publicados. QoS mid={result.mid}")
