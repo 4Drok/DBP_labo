@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # Servicio 1: El Servidor API (FastAPI)
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - smat_sqlite_data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:////app/data/smat.db
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/docs').getcode()"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # Servicio 2: El traductor de protocolos IoT (MQTT Bridge)
+  mqtt_bridge:
+    build: ./iot_device
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      - API_URL=http://backend:8000/lecturas/
+      - TOKEN_URL=http://backend:8000/token
+      - DEFAULT_ADMIN_USER=admin_fisi
+      - DEFAULT_ADMIN_PASSWORD=smat2026
+
+volumes:
+  smat_sqlite_data:

@@ -1,9 +1,11 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # 1. Definimos el nombre del archivo. Si no existe, SQLite lo creará automáticamente.
-SQLALCHEMY_DATABASE_URL = "sqlite:///./smat.db"
+#    En Docker se sobreescribe con la variable de entorno DATABASE_URL (volumen persistente).
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./smat.db")
 
 # 2. Creamos el motor de conexión
 engine = create_engine(
